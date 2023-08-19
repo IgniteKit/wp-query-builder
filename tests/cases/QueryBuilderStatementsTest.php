@@ -1006,7 +1006,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->update();
         // Assert
         $this->assertEquals(
-            'UPDATE prefix_set1 SET a = %s,b = %d,c = null,d = \'7,8\'',
+            'UPDATE prefix_set1 SET `a` = %s,`b` = %d,`c` = null,`d` = \'7,8\'',
             $wpdb->get_query()
         );
     }
@@ -1034,7 +1034,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->update();
         // Assert
         $this->assertEquals(
-            'UPDATE prefix_set2 SET c = 1,b = c+1',
+            'UPDATE prefix_set2 SET c = 1,`b` = c+1',
             $wpdb->get_query()
         );
     }
@@ -1062,7 +1062,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->update();
         // Assert
         $this->assertEquals(
-            'UPDATE prefix_set2 SET a = %s',
+            'UPDATE prefix_set2 SET `a` = %s',
             $wpdb->get_query()
         );
     }
@@ -1098,7 +1098,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->update();
         // Assert
         $this->assertEquals(
-            'UPDATE prefix_u1,prefix_u2 JOIN prefix_u2 ON u1.id = u2.id SET u1.title = u2.title,u1.parent = %s WHERE u1.status = %s',
+            'UPDATE prefix_u1,prefix_u2 JOIN prefix_u2 ON u1.id = u2.id SET u1.title = u2.title,`u1.parent` = %s WHERE u1.status = %s',
             $wpdb->get_query()
         );
     }

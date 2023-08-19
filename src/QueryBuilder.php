@@ -448,7 +448,7 @@ class QueryBuilder {
 			$statement              = $key === 'raw'
 				? [ $arg_value ]
 				: [
-					sprintf( '%s', $key ),
+					sprintf( '`%s`', $key ),
 					'=',
 					is_array( $value ) && array_key_exists( 'raw', $value )
 						? $value['raw']
@@ -493,7 +493,7 @@ class QueryBuilder {
 				$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
 			}
 
-			$preparedKey = sprintf( '%s', $key );
+			$preparedKey = sprintf( '`%s`', $key );
 
 			if ( is_array( $value ) && array_key_exists( 'raw', $value ) ) {
 				$this->builder['values'][ $preparedKey ] = $value['raw'];

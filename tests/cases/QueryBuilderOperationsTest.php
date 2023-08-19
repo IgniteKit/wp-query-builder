@@ -302,7 +302,7 @@ class QueryBuilderOperationsTest extends TestCase
         $this->assertIsBool( $var );
         $this->assertTrue( $var );
         $this->assertEquals(
-            'UPDATE prefix_up SET a = %s',
+            'UPDATE prefix_up SET `a` = %s',
             $wpdb->get_query()
         );
     }

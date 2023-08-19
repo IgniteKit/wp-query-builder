@@ -130,7 +130,7 @@ class TraitModelTest extends TestCase
         $this->assertIsBool( $flag );
         $this->assertTrue( $flag );
         $this->assertEquals(
-            'UPDATE prefix_' . Model::TABLE . ' SET status = %s',
+            'UPDATE prefix_' . Model::TABLE . ' SET `status` = %s',
             $wpdb->get_query()
         );
     }
@@ -149,7 +149,7 @@ class TraitModelTest extends TestCase
         $flag = Model::update_all( ['status' => 'active'], ['type' => 'yolo'] );
         // Assert
         $this->assertEquals(
-            'UPDATE prefix_' . Model::TABLE . ' SET status = %s WHERE type = %s',
+            'UPDATE prefix_' . Model::TABLE . ' SET `status` = %s WHERE type = %s',
             $wpdb->get_query()
         );
     }
