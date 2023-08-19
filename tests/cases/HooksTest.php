@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
  * Test.
  *
  * @author 10 Quality <info@10quality.com>
+ * @author Darko G. <dg@darkog.com>
  * @license MIT
  * @package wp-query-builder
  * @version 1.0.13

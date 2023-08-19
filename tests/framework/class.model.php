@@ -1,11 +1,9 @@
 <?php
 
-use TenQuality\WP\Database\Abstracts\DataModel;
-use TenQuality\WP\Database\Traits\DataModelTrait;
+use IgniteKit\WP\QueryBuilder\Abstracts\DataModel;
 
 class Model extends DataModel
 {
-    use DataModelTrait;
     /**
      * Data table name in database (without prefix).
      * @var string
