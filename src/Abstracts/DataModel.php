@@ -7,6 +7,7 @@ use IgniteKit\WP\QueryBuilder\Contracts\Arrayable;
 use IgniteKit\WP\QueryBuilder\Contracts\JSONable;
 use IgniteKit\WP\QueryBuilder\Contracts\Stringable;
 use IgniteKit\WP\QueryBuilder\QueryBuilder;
+use IgniteKit\WP\QueryBuilder\Utils\Json;
 
 /**
  * Custom table data model.
@@ -49,6 +50,48 @@ abstract class DataModel implements Arrayable, Stringable, JSONable {
 	 * @var string
 	 */
 	protected $primary_key = 'ID';
+
+	/**
+	 * Are timestamps supported?
+	 * @var bool
+	 */
+	protected $timestamps;
+
+	/**
+	 * The appended properties
+	 * @since 1.1.1
+	 * @var array
+	 */
+	protected $appends = [];
+
+	/**
+	 * The model casts
+	 * @since 1.1.1
+	 * @var array
+	 */
+	protected $casts = [];
+
+	/**
+	 * Hidden from public
+	 * @since 1.1.1
+	 * @var array
+	 */
+	protected $hidden = [];
+
+	/**
+	 * Created at timestamp
+	 * @since 1.1.1
+	 * @var string
+	 */
+	public $created_at;
+
+	/**
+	 * Updated at timestamp
+	 * @since 1.1.1
+	 * @var string
+	 */
+	public $updated_at;
+
 	/**
 	 * List of properties used for keyword search.
 	 * @since 1.0.0
@@ -66,7 +109,7 @@ abstract class DataModel implements Arrayable, Stringable, JSONable {
 	 *
 	 */
 	public function __construct( $attributes = [], $id = null ) {
-		$this->attributes = $attributes;
+		$this->attributes = $this->cast( $attributes );
 		if ( ! empty( $id ) ) {
 			$this->attributes[ $this->primary_key ] = $id;
 		}
@@ -325,22 +368,33 @@ abstract class DataModel implements Arrayable, Stringable, JSONable {
 	 * @since 1.0.0
 	 *
 	 */
+	/**
+	 *
+	 * Saves data attributes in database.
+	 * Returns flag indicating if save process was successful.
+	 *
+	 * @param  bool  $force_insert  Flag that indicates if should insert regardless of ID.
+	 *
+	 * @return bool
+	 * @since 1.0.0
+	 * @since 1.1.1  - Interpret 'null' values as database NULL
+	 *
+	 * @global object Wordpress Data base accessor.
+	 *
+	 */
 	public function save( $force_insert = false ) {
 		global $wpdb;
-		$protected = $this->protected_properties();
+
 		if ( ! $force_insert && $this->{$this->primary_key} ) {
 			// Update
-			$success = $wpdb->update( $this->table_name(), array_filter( $this->attributes, function ( $key ) use ( $protected ) {
-				return ! in_array( $key, $protected );
-			}, ARRAY_FILTER_USE_KEY ), [ $this->primary_key => $this->attributes[ $this->primary_key ] ] );
+			$success = $wpdb->update( $this->table_name(), $this->getData( 'update' ), [ $this->primary_key => $this->attributes[ $this->primary_key ] ], $this->get_data_format() );
 			if ( $success ) {
 				do_action( 'data_model_' . $this->table . '_updated', $this );
 			}
 		} else {
+
 			// Insert
-			$success                    = $wpdb->insert( $this->table_name(), array_filter( $this->attributes, function ( $key ) use ( $protected ) {
-				return ! in_array( $key, $protected );
-			}, ARRAY_FILTER_USE_KEY ) );
+			$success                    = $wpdb->insert( $this->table_name(), $this->getData( 'create' ), $this->get_data_format() );
 			$this->{$this->primary_key} = $wpdb->insert_id;
 			$date                       = date( 'Y-m-d H:i:s' );
 			$this->created_at           = $date;
@@ -485,100 +539,278 @@ abstract class DataModel implements Arrayable, Stringable, JSONable {
 	 */
 	public function table_name() {
 		global $wpdb;
+
 		return $wpdb->prefix . $this->table;
 	}
 
 	/**
-	 * Returns model as array.
-	 * @since 1.1.0
+	 * Cast the required attributes
 	 *
-	 * @return array
-	 */
-	public function __toArray()
-	{
-		$output = [];
-		foreach ($this->properties as $property) {
-			if ($this->$property !== null)
-				$output[$property] = $this->__getCleaned($this->$property);
-		}
-		return $output;
-	}
-	/**
-	 * Returns model as array.
-	 * @since 1.1.0
-	 *
-	 * @return array
-	 */
-	public function toArray()
-	{
-		return $this->__toArray();
-	}
-	/**
-	 * Returns model as json string.
-	 * @since 1.1.0
-	 *
-	 * @return string
-	 */
-	public function __toString()
-	{
-		return json_encode($this->__toArray());
-	}
-	/**
-	 * Returns cleaned value for casting.
-	 * @since 1.1.0
-	 *
-	 * @param mixed $value Value to clean.
+	 * @param $attributes
 	 *
 	 * @return mixed
+	 * @since 1.1.1
+	 *
 	 */
-	private function __getCleaned($value)
-	{
-		switch (gettype($value)) {
+	protected function cast( $attributes ) {
+		foreach ( $this->casts as $key => $type ) {
+			if ( ! array_key_exists( $key, $attributes ) || ( empty( $attributes[ $key ] ) && '0' !== $attributes[ $key ] ) ) {
+				continue;
+			}
+			switch ( $type ) {
+				case 'int':
+					$attributes[ $key ] = (int) $attributes[ $key ];
+					break;
+				case 'string':
+					$attributes[ $key ] = (string) $attributes[ $key ];
+					break;
+				case 'json':
+					if ( '[]' === $attributes[ $key ] ) {
+						$attributes[ $key ] = [];
+					} else {
+						$attributes[ $key ] = Json::maybe_decode( $attributes[ $key ], true );
+					}
+					break;
+				case 'mixed':
+					// If valid json, decode it. Otherwise, return as it is.
+					$attributes[ $key ] = Json::maybe_decode( $attributes[ $key ], true );
+					break;
+			}
+		}
+
+		return $attributes;
+	}
+
+	/**
+	 * Get property
+	 *
+	 * @param $property
+	 *
+	 * @return mixed|null
+	 * @since 1.1.1
+	 *
+	 */
+	public function get( $property ) {
+		return isset( $this->attributes[ $property ] ) ? $this->attributes[ $property ] : null;
+	}
+
+	/**
+	 * Guess the data format
+	 * @return array
+	 * @since 1.1.1
+	 */
+	protected function get_data_format() {
+		$data   = $this->get_prepared_for_write();
+		$format = [];
+
+		foreach ( $data as $key => $value ) {
+			if ( is_null( $value ) || ! empty( $value ) && is_scalar( $value ) && 'null' === strtolower( $value ) ) {
+				$format[] = null;
+			} elseif ( is_numeric( $value ) ) {
+				if ( strpos( $value, '.' ) !== false ) {
+					$format[] = '%f';
+				} else {
+					$format[] = '%d';
+				}
+			} else {
+				$format[] = '%s';
+			}
+		}
+
+
+		return $format;
+	}
+
+	/**
+	 * Return's the model data prepared for updating/inserting
+	 *
+	 * @param $op
+	 *
+	 * @return array
+	 * @since 1.1.1
+	 *
+	 */
+	protected function get_prepared_for_write( $op = 'create' ) {
+		$protected = $this->protected_properties();
+
+		$data = array_filter( $this->attributes, function ( $key ) use ( $protected ) {
+			return ! in_array( $key, $protected );
+		}, ARRAY_FILTER_USE_KEY );
+
+
+		foreach ( $data as $key => $value ) {
+			if ( is_scalar( $value ) && null !== $value && 'null' === strtolower( $value ) ) {
+				$data[ $key ] = null;
+			}
+		}
+
+		if ( $this->timestamps ) {
+			$stamp = date( 'Y-m-d H:i:s' );
+			switch ( $op ) {
+				case 'update':
+					$data['updated_at'] = $stamp;
+					break;
+				case 'create':
+					$data['created_at'] = $stamp;
+					break;
+			}
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Return's decoded data
+	 *
+	 * @param $key
+	 * @param $cached
+	 *
+	 * @return mixed
+	 * @since 1.1.1
+	 *
+	 */
+	protected function get_decoded( $key, $cached = true ) {
+		return Json::maybe_decode( $this->get( $key ), true );
+	}
+
+	/**
+	 * For backwards compatibility
+	 *
+	 * @param $op
+	 *
+	 * @return array
+	 * @since 1.1.1 - For backwards compatibility
+	 * @depreacted  1.1.1
+	 *
+	 */
+	protected function getData( $op = 'create' ) {
+		return $this->get_prepared_for_write( $op );
+	}
+
+	/**
+	 * Return's decoded data
+	 * @param $key
+	 * @param $cached
+	 * @since 1.1.1  - For backwards compatibility
+	 *
+	 * @return mixed
+	 * @depreacted 1.1.1
+	 */
+	protected function getJson( $key, $cached = true ) {
+		return $this->get_decoded( $key, $cached );
+	}
+
+	/**
+	 * Returns model as array.
+	 * @return array
+	 * @since 1.1.0
+	 *
+	 */
+	public function __toArray() {
+
+		$output = [];
+
+		foreach ( $this->attributes as $key => $value ) {
+			$output[ $key ] = $this->__getCleaned( $value );
+		}
+
+		foreach ( $this->appends as $key ) {
+			if ( method_exists( $this, 'get' . ucfirst( $key ) . 'Alias' ) ) {
+				$value          = call_user_func_array( [ &$this, 'get' . ucfirst( $key ) . 'Alias' ], [] );
+				$output[ $key ] = $value;
+			}
+		}
+
+		foreach ( $this->hidden as $key ) {
+			if ( array_key_exists( $key, $output ) ) {
+				unset( $output[ $key ] );
+			}
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Returns model as array.
+	 * @return array
+	 * @since 1.1.0
+	 *
+	 */
+	public function toArray() {
+		return $this->__toArray();
+	}
+
+	/**
+	 * Returns model as json string.
+	 * @return string
+	 * @since 1.1.0
+	 *
+	 */
+	public function __toString() {
+		return json_encode( $this->__toArray() );
+	}
+
+	/**
+	 * Returns cleaned value for casting.
+	 *
+	 * @param  mixed  $value  Value to clean.
+	 *
+	 * @return mixed
+	 * @since 1.1.0
+	 *
+	 */
+	private function __getCleaned( $value ) {
+		switch ( gettype( $value ) ) {
 			case 'object':
-				return method_exists($value, '__toArray')
+				return method_exists( $value, '__toArray' )
 					? $value->__toArray()
-					: (method_exists($value, 'toArray')
+					: ( method_exists( $value, 'toArray' )
 						? $value->toArray()
-						:(array)$value
+						: (array) $value
 					);
 			case 'array':
 				$output = [];
-				foreach ($value as $key => $data) {
-					if ($data !== null)
-						$output[$key] = $this->__getCleaned($data);
+				foreach ( $value as $key => $data ) {
+					if ( $data !== null ) {
+						$output[ $key ] = $this->__getCleaned( $data );
+					}
 				}
+
 				return $output;
 		}
+
 		return $value;
 	}
+
 	/**
 	 * Returns object as JSON string.
-	 * @since 1.1.0
 	 *
-	 * @link http://php.net/manual/en/function.json-encode.php
-	 *
-	 * @param int $options JSON encoding options. See @link.
-	 * @param int $depth   JSON encoding depth. See @link.
+	 * @param  int  $options  JSON encoding options. See @link.
+	 * @param  int  $depth  JSON encoding depth. See @link.
 	 *
 	 * @return string
+	 * @link http://php.net/manual/en/function.json-encode.php
+	 *
+	 * @since 1.1.0
+	 *
 	 */
-	public function __toJSON($options = 0, $depth = 512)
-	{
-		return json_encode($this->__toArray(), $options, $depth);
+	public function __toJSON( $options = 0, $depth = 512 ) {
+		return json_encode( $this->__toArray(), $options, $depth );
 	}
+
 	/**
 	 * Returns object as JSON string.
-	 * @since 1.1.0
 	 *
-	 * @link http://php.net/manual/en/function.json-encode.php
-	 *
-	 * @param int $options JSON encoding options. See @link.
-	 * @param int $depth   JSON encoding depth. See @link.
+	 * @param  int  $options  JSON encoding options. See @link.
+	 * @param  int  $depth  JSON encoding depth. See @link.
 	 *
 	 * @return string
+	 * @link http://php.net/manual/en/function.json-encode.php
+	 *
+	 * @since 1.1.0
+	 *
 	 */
-	public function toJSON($options = 0, $depth = 512)
-	{
-		return $this->__toJSON($options, $depth);
+	public function toJSON( $options = 0, $depth = 512 ) {
+		return $this->__toJSON( $options, $depth );
 	}
 }
