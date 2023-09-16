@@ -3,6 +3,7 @@
 namespace IgniteKit\WP\QueryBuilder;
 
 use Exception;
+use function GuzzleHttp\default_user_agent;
 
 /**
  * Database query builder.
@@ -168,21 +169,31 @@ class QueryBuilder {
 				$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
 			}
 
-
+			// Create statement
+			$prepared_operator = is_array( $value ) && isset( $value['operator'] ) ? strtoupper( $value['operator'] ) : ( $arg_value === null ? 'is' : '=' );
+			if ( is_array( $value ) && array_key_exists( 'key', $value )  ) {
+				if ( strtoupper($value['operator']) === 'BETWEEN' ) {
+					$prepared_value = $value['key'];
+				} else {
+					$prepared_value = ! is_numeric( $arg_value ) ? sprintf( "'%s'", $arg_value ) : $arg_value;
+				}
+			} else {
+				if ( is_array( $arg_value ) ) {
+					$prepared_value = '(\'' . implode( '\',\'', $arg_value ) . '\')';
+				} else {
+					if ( is_null( $arg_value ) ) {
+						$prepared_value = 'null';
+					} else {
+						$prepared_value = $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value );
+					}
+				}
+			}
 			$statement = $key === 'raw'
 				? [ $arg_value ]
 				: [
 					$key,
-					is_array( $value ) && isset( $value['operator'] ) ? strtoupper( $value['operator'] ) : ( $arg_value === null ? 'is' : '=' ),
-					is_array( $value ) && array_key_exists( 'key', $value )
-						? $value['key']
-						: ( is_array( $arg_value )
-						? ( '(\'' . implode( '\',\'', $arg_value ) . '\')' )
-						: ( $arg_value === null
-							? 'null'
-							: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
-						)
-					),
+					$prepared_operator,
+					$prepared_value
 				];
 
 			// Between?
