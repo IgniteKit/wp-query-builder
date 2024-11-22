@@ -443,34 +443,17 @@ class QueryBuilder {
 	 */
 	public function set( $args ) {
 
-		global $wpdb;
 		foreach ( $args as $key => $value ) {
-			// Value
-			$arg_value         = is_array( $value ) && array_key_exists( 'value', $value ) ? $value['value'] : $value;
-			$sanitize_callback = is_array( $value ) && array_key_exists( 'sanitize_callback', $value )
-				? $value['sanitize_callback']
-				: true;
-			if ( $sanitize_callback
-			     && $key !== 'raw'
-			     && ( ! is_array( $value ) || ! array_key_exists( 'raw', $value ) )
-			) {
-				$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
+
+			$preparedKey = sprintf( '`%s`', $key );
+
+			if ( 'raw' === $key ) {
+				$statement = [$value];
+			} else {
+				$parsed = $this->parseValue( $key, $value );
+				$statement   = [ $preparedKey, '=', $parsed ];
 			}
-			$statement              = $key === 'raw'
-				? [ $arg_value ]
-				: [
-					sprintf( '`%s`', $key ),
-					'=',
-					is_array( $value ) && array_key_exists( 'raw', $value )
-						? $value['raw']
-						: ( is_array( $arg_value )
-						? ( '\'' . implode( ',', $arg_value ) . '\'' )
-						: ( $arg_value === null
-							? 'null'
-							: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
-						)
-					),
-				];
+
 			$this->builder['set'][] = $this->buildStatement( $statement );
 		}
 
@@ -485,42 +468,51 @@ class QueryBuilder {
 	 * @return $this
 	 */
 	public function values( $args ) {
-		global $wpdb;
 
 		if ( ! isset( $this->builder['values'] ) ) {
 			$this->builder['values'] = [];
 		}
 
 		foreach ( $args as $key => $value ) {
-			// Value
-			$arg_value         = is_array( $value ) && array_key_exists( 'value', $value ) ? $value['value'] : $value;
-			$sanitize_callback = is_array( $value ) && array_key_exists( 'sanitize_callback', $value )
-				? $value['sanitize_callback']
-				: true;
-			if ( $sanitize_callback
-			     && $key !== 'raw'
-			     && ( ! is_array( $value ) || ! array_key_exists( 'raw', $value ) )
-			) {
-				$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
-			}
-
 			$preparedKey = sprintf( '`%s`', $key );
 
-			if ( is_array( $value ) && array_key_exists( 'raw', $value ) ) {
-				$this->builder['values'][ $preparedKey ] = $value['raw'];
-			} else {
-				if ( is_array( $arg_value ) ) {
-					$this->builder['values'][ $preparedKey ] = ( '\'' . implode( ',', $arg_value ) . '\'' );
-				} else {
-					$this->builder['values'][ $preparedKey ] = ( $arg_value === null
-						? 'null'
-						: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
-					);
-				}
-			}
+			$this->builder['values'][ $preparedKey ] = $this->parseValue( $key, $value );
+
 		}
 
 		return $this;
+	}
+
+	/**
+	 * Parses value from parameterized statement
+	 *
+	 * @param $key
+	 * @param $value
+	 *
+	 * @return mixed|string
+	 */
+	protected function parseValue( $key, $value ) {
+
+		global $wpdb;
+
+		$arg_value         = is_array( $value ) && array_key_exists( 'value', $value ) ? $value['value'] : $value;
+		$sanitize_callback = is_array( $value ) && array_key_exists( 'sanitize_callback', $value ) ? $value['sanitize_callback'] : true;
+		if ( $sanitize_callback && $key !== 'raw' && ( ! is_array( $value ) || ! array_key_exists( 'raw', $value ) ) ) {
+			$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
+		}
+
+		if ( is_array( $value ) && array_key_exists( 'raw', $value ) ) {
+			return $value['raw'];
+		} else {
+			if ( is_array( $arg_value ) ) {
+				return ( '\'' . implode( ',', $arg_value ) . '\'' );
+			} else {
+				return ( $arg_value === null
+					? 'null'
+					: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
+				);
+			}
+		}
 	}
 
 	/**
@@ -1073,7 +1065,7 @@ class QueryBuilder {
 	protected function buildStatement( $statement ) {
 		$imploded = implode( ' ', $statement );
 
-		return str_replace( [ "'NOT NULL'", "'not null'", "'NULL'", "'null'" ], [ "NOT NULL", "not nulll", "NULL", "null" ], $imploded );
+		return str_replace( [ "'NOT NULL'", "'not null'", "'NULL'", "'null'" ], [ "NOT NULL", "not null", "NULL", "null" ], $imploded );
 	}
 
 	/**
