@@ -170,16 +170,25 @@ class QueryBuilder {
 			}
 
 			// Create statement
-			$prepared_operator = is_array( $value ) && isset( $value['operator'] ) ? strtoupper( $value['operator'] ) : ( $arg_value === null ? 'is' : '=' );
+			// Auto-detect IN operator when value is an array and no operator is specified
+			$prepared_operator = $this->determine_operator( $value, $arg_value );
+
 			if ( is_array( $value ) && array_key_exists( 'key', $value )  ) {
 				if ( strtoupper($value['operator']) === 'BETWEEN' ) {
 					$prepared_value = $value['key'];
 				} else {
-					$prepared_value = ! is_numeric( $arg_value ) ? sprintf( "'%s'", $arg_value ) : $arg_value;
+					if ( is_array( $arg_value ) ) {
+						$prepared_value = $this->prepare_array_value( $arg_value, $value );
+					} else if ( is_string( $arg_value ) && ! is_numeric( $arg_value ) ) {
+						$prepared_value = sprintf( "'%s'", $arg_value );
+					} else {
+						$prepared_value = $arg_value;
+					}
 				}
 			} else {
 				if ( is_array( $arg_value ) ) {
-					$prepared_value = '(\'' . implode( '\',\'', $arg_value ) . '\')';
+					// Handle IN and NOT IN operators with proper escaping
+					$prepared_value = $this->prepare_array_value( $arg_value, $value );
 				} else {
 					if ( is_null( $arg_value ) ) {
 						$prepared_value = 'null';
@@ -214,7 +223,7 @@ class QueryBuilder {
 						$statement[] = array_key_exists( 'key_b', $value )
 							? $value['key_b']
 							: ( is_array( $arg_value )
-								? ( '(\'' . implode( '\',\'', $arg_value ) . '\')' )
+								? $this->prepare_array_value( $arg_value, $value )
 								: $wpdb->prepare( ( ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
 							);
 					} else {
@@ -233,6 +242,59 @@ class QueryBuilder {
 		}
 
 		return $this;
+	}
+
+	/**
+	 * Determines the appropriate operator based on the value and its type.
+	 *
+	 * @param mixed $value The full value array or simple value
+	 * @param mixed $arg_value The actual value to be used in the query
+	 * @return string The SQL operator
+	 * @since 1.0.14
+	 */
+	private function determine_operator( $value, $arg_value ) {
+		// If operator is explicitly set, use it
+		if ( is_array( $value ) && isset( $value['operator'] ) ) {
+			return strtoupper( $value['operator'] );
+		}
+
+		// Auto-detect based on value type
+		if ( $arg_value === null ) {
+			return 'IS';
+		}
+
+		if ( is_array( $arg_value ) ) {
+			return 'IN';
+		}
+
+		return '=';
+	}
+
+	/**
+	 * Prepares array values for IN/NOT IN operators with proper escaping.
+	 *
+	 * @param array $arg_value The array of values
+	 * @param mixed $value The full value configuration
+	 * @return string Properly formatted array for SQL
+	 * @since 1.0.14
+	 */
+	private function prepare_array_value( $arg_value, $value ) {
+		global $wpdb;
+
+		$escaped_values = array();
+		foreach ( $arg_value as $single_value ) {
+			if ( is_null( $single_value ) ) {
+				$escaped_values[] = 'NULL';
+			} else {
+				$force_string = is_array( $value ) && array_key_exists( 'force_string', $value ) && $value['force_string'];
+				$escaped_values[] = $wpdb->prepare(
+					( ! $force_string && is_numeric( $single_value ) ) ? '%d' : '%s',
+					$single_value
+				);
+			}
+		}
+
+		return '(' . implode( ',', $escaped_values ) . ')';
 	}
 
 	/**
