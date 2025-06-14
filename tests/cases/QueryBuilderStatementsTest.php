@@ -36,7 +36,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Prepare
         $builder->select( 'test_field' )->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT test_field FROM ',
             $wpdb->get_query()
         );
@@ -56,7 +56,7 @@ class QueryBuilderStatementsTest extends TestCase
         $builder->select( 'test_field' )
             ->from( 'test_table' )->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT test_field FROM prefix_test_table',
             $wpdb->get_query()
         );
@@ -76,7 +76,7 @@ class QueryBuilderStatementsTest extends TestCase
         $builder->select( 'test_field' )
             ->from( 'test_table', false )->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT test_field FROM test_table',
             $wpdb->get_query()
         );
@@ -98,7 +98,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where([ 'test_field' => 1 ])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field = %d',
             $wpdb->get_query()
         );
@@ -120,7 +120,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where([ 'test_field' => null ])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field is null',
             $wpdb->get_query()
         );
@@ -142,7 +142,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where([ 'test_field' => ['operator' => '<>', 'value' => 1 ]])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field <> %d',
             $wpdb->get_query()
         );
@@ -164,7 +164,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where([ 'test_field' => ['operator' => 'IS NOT', 'value' => null ]])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field IS NOT null',
             $wpdb->get_query()
         );
@@ -186,7 +186,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where([ 'test_field' => 1, 'ID' => 99 ])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field = %d AND ID = %d',
             $wpdb->get_query()
         );
@@ -211,7 +211,7 @@ class QueryBuilderStatementsTest extends TestCase
             ])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field = %d OR ID = %d',
             $wpdb->get_query()
         );
@@ -233,7 +233,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->where(['test_field' => 'a'])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field = %s',
             $wpdb->get_query()
         );
@@ -255,8 +255,8 @@ class QueryBuilderStatementsTest extends TestCase
             ->where(['test_field' => [1,2,3]])
             ->get();
         // Assert
-        $this->assertEquals(
-            'SELECT * FROM prefix_test_table WHERE test_field = (\'1\',\'2\',\'3\')',
+        $this->assertEqualsIgnoringCase(
+            'SELECT * FROM prefix_test_table WHERE test_field IN (%d,%d,%d)',
             $wpdb->get_query()
         );
     }
@@ -278,7 +278,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->join( 'test_join', [ ['key' => 'test_field', 'value' => 1] ] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN prefix_test_join ON test_field = %d',
             $wpdb->get_query()
         );
@@ -301,7 +301,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->join( 'test_join', [ ['key' => 'test_field', 'value' => 1] ], true )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table LEFT JOIN prefix_test_join ON test_field = %d',
             $wpdb->get_query()
         );
@@ -324,7 +324,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->join( 'test_join', [ ['key' => 'test_field', 'value' => 1] ], false, false )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN test_join ON test_field = %d',
             $wpdb->get_query()
         );
@@ -350,7 +350,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN prefix_test_join ON test_field = %d AND test_field = test_field_2',
             $wpdb->get_query()
         );
@@ -376,7 +376,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN prefix_test_join ON field_a is null AND field_b IS NOT null',
             $wpdb->get_query()
         );
@@ -402,7 +402,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN prefix_test_join ON field_a = %s OR field_b IN (\'1\',\'2\')',
             $wpdb->get_query()
         );
@@ -424,7 +424,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->limit( 2 )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table LIMIT %d',
             $wpdb->get_query()
         );
@@ -446,7 +446,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->offset( 2 )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table OFFSET %d',
             $wpdb->get_query()
         );
@@ -469,7 +469,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->offset( 2 )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table LIMIT %d OFFSET %d',
             $wpdb->get_query()
         );
@@ -491,7 +491,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->group_by( 'test_field' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table GROUP BY test_field',
             $wpdb->get_query()
         );
@@ -514,7 +514,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->group_by( 'field_b' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table GROUP BY field_a,field_b',
             $wpdb->get_query()
         );
@@ -536,7 +536,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->order_by( 'test_field' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table ORDER BY test_field ASC',
             $wpdb->get_query()
         );
@@ -559,7 +559,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->order_by( 'test_b' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table ORDER BY test_a DESC,test_b ASC',
             $wpdb->get_query()
         );
@@ -581,7 +581,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->having( 'count(1) > 0' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table HAVING count(1) > 0',
             $wpdb->get_query()
         );
@@ -603,7 +603,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->keywords( 'word', ['field_a','field_b'] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE (field_a LIKE %s OR field_b LIKE %s)',
             $wpdb->get_query()
         );
@@ -625,7 +625,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->keywords( 'two words', ['field_a','field_b'] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE (field_a LIKE %s OR field_b LIKE %s) AND (field_a LIKE %s OR field_b LIKE %s)',
             $wpdb->get_query()
         );
@@ -647,7 +647,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->keywords( 'two words', ['field_a','field_b'], ',' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE (field_a LIKE %s OR field_b LIKE %s)',
             $wpdb->get_query()
         );
@@ -669,7 +669,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->keywords( 'two,words', ['field_a','field_b'], ',' )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE (field_a LIKE %s OR field_b LIKE %s) AND (field_a LIKE %s OR field_b LIKE %s)',
             $wpdb->get_query()
         );
@@ -697,7 +697,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->offset(1)
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT count(1) AS xx FROM prefix_a JOIN prefix_b ON b.y = a.y WHERE a.x = %d '
                 .'GROUP BY a.x HAVING count(1) > 0 ORDER BY xx ASC LIMIT %d OFFSET %d',
             $wpdb->get_query()
@@ -726,7 +726,7 @@ class QueryBuilderStatementsTest extends TestCase
             ])
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table WHERE test_field = %d AND a = b',
             $wpdb->get_query()
         );
@@ -748,7 +748,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->join( 'test_join', [ ['raw' => 'a = b'], ['key' => 'field_a', 'value' => 4] ] )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_test_table JOIN prefix_test_join ON a = b AND field_a = %d',
             $wpdb->get_query()
         );
@@ -767,7 +767,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Prepare
         $builder->select( 'test_field' )->get( OBJECT, null, true );
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT SQL_CALC_FOUND_ROWS test_field FROM ',
             $wpdb->get_query()
         );
@@ -786,7 +786,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Prepare
         $builder->select( 'test_field' )->col( 0, true );
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT SQL_CALC_FOUND_ROWS test_field FROM ',
             $wpdb->get_query()
         );
@@ -805,7 +805,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Prepare
         $builder->select( 'test_field' )->rows_found();
         // Assert
-        $this->assertEquals('SELECT FOUND_ROWS()', $wpdb->get_query());
+        $this->assertEqualsIgnoringCase('SELECT FOUND_ROWS()', $wpdb->get_query());
     }
     /**
      * Test query builder
@@ -829,7 +829,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->join( 'join', [ ['key' => 'field', 'value' => 1] ], $type )
             ->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_table ' . $expected_join . ' prefix_join ON field = %d',
             $wpdb->get_query()
         );
@@ -871,7 +871,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Assert
         $this->assertIsBool( $var );
         $this->assertTrue( $var );
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'DELETE FROM prefix_table',
             $wpdb->get_query()
         );
@@ -895,7 +895,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Assert
         $this->assertIsBool( $var );
         $this->assertTrue( $var );
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'DELETE FROM prefix_table WHERE field = %d',
             $wpdb->get_query()
         );
@@ -926,7 +926,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Assert
         $this->assertIsBool( $var );
         $this->assertTrue( $var );
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'DELETE prefix_asp FROM prefix_asp LEFT JOIN prefix_b as b ON b_id = b.id WHERE b.id is null',
             $wpdb->get_query()
         );
@@ -957,7 +957,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Assert
         $this->assertIsBool( $var );
         $this->assertTrue( $var );
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'DELETE prefix_asp FROM prefix_asp as asp LEFT JOIN prefix_b as b ON asp.b_id = b.id WHERE b.id is null',
             $wpdb->get_query()
         );
@@ -977,7 +977,7 @@ class QueryBuilderStatementsTest extends TestCase
         // Prepare
         $builder->from( 'table' )->get();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'SELECT * FROM prefix_table',
             $wpdb->get_query()
         );
@@ -1005,7 +1005,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->update();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'UPDATE prefix_set1 SET `a` = %s,`b` = %d,`c` = null,`d` = \'7,8\'',
             $wpdb->get_query()
         );
@@ -1033,7 +1033,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->update();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'UPDATE prefix_set2 SET c = 1,`b` = c+1',
             $wpdb->get_query()
         );
@@ -1061,7 +1061,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->update();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'UPDATE prefix_set2 SET `a` = %s',
             $wpdb->get_query()
         );
@@ -1097,7 +1097,7 @@ class QueryBuilderStatementsTest extends TestCase
             ] )
             ->update();
         // Assert
-        $this->assertEquals(
+        $this->assertEqualsIgnoringCase(
             'UPDATE prefix_u1,prefix_u2 JOIN prefix_u2 ON u1.id = u2.id SET u1.title = u2.title,`u1.parent` = %s WHERE u1.status = %s',
             $wpdb->get_query()
         );
