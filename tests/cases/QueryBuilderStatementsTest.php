@@ -403,7 +403,7 @@ class QueryBuilderStatementsTest extends TestCase
             ->get();
         // Assert
         $this->assertEqualsIgnoringCase(
-            'SELECT * FROM prefix_test_table JOIN prefix_test_join ON field_a = %s OR field_b IN (\'1\',\'2\')',
+            'SELECT * FROM prefix_test_table JOIN prefix_test_join ON field_a = %s OR field_b IN (%d,%d)',
             $wpdb->get_query()
         );
     }
