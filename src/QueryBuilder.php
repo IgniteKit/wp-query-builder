@@ -3,7 +3,6 @@
 namespace IgniteKit\WP\QueryBuilder;
 
 use Exception;
-use function GuzzleHttp\default_user_agent;
 
 /**
  * Database query builder.
@@ -12,7 +11,6 @@ use function GuzzleHttp\default_user_agent;
  * @copyright Darko G <dg@darkog.com>
  * @license MIT
  * @package wp-query-builder
- * @version 1.0.13
  */
 class QueryBuilder {
 

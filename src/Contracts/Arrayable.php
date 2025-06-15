@@ -8,7 +8,6 @@ namespace IgniteKit\WP\QueryBuilder\Contracts;
  * @copyright 10 Quality <info@10quality.com>
  * @copyright Darko G <dg@darkog.com>
  * @license MIT
- * @version 1.0.0
  */
 interface Arrayable
 {

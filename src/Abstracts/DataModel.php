@@ -16,7 +16,6 @@ use IgniteKit\WP\QueryBuilder\Utils\Json;
  * @copyright Darko G <dg@darkog.com>
  * @license MIT
  * @package wp-query-builder
- * @version 1.0.12
  */
 abstract class DataModel implements Arrayable, Stringable, JSONable {
 

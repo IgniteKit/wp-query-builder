@@ -9,7 +9,6 @@ namespace IgniteKit\WP\QueryBuilder\Contracts;
  * @copyright Darko G <dg@darkog.com>
  * @license MIT
  * @package IgniteKit\WP\QueryBuilder\Contracts
- * @version 1.0.0
  */
 interface Stringable
 {

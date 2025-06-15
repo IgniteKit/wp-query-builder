@@ -14,7 +14,6 @@ use IgniteKit\WP\QueryBuilder\Contracts\JSONable;
  * @copyright Darko G <dg@darkog.com>
  * @license MIT
  * @package IgniteKit\WP\QueryBuilder
- * @version 1.0.2
  */
 class Collection extends ArrayObject implements Arrayable, JSONable, Stringable
 {
