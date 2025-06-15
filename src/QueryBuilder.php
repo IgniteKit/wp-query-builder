@@ -250,7 +250,7 @@ class QueryBuilder {
 	 * @param mixed $value The full value array or simple value
 	 * @param mixed $arg_value The actual value to be used in the query
 	 * @return string The SQL operator
-	 * @since 1.0.14
+	 * @since 1.3.0
 	 */
 	private function determine_operator( $value, $arg_value ) {
 		// If operator is explicitly set, use it
@@ -276,7 +276,7 @@ class QueryBuilder {
 	 * @param array $arg_value The array of values
 	 * @param mixed $value The full value configuration
 	 * @return string Properly formatted array for SQL
-	 * @since 1.0.14
+	 * @since 1.3.0
 	 */
 	private function prepare_array_value( $arg_value, $value ) {
 		global $wpdb;
