@@ -171,14 +171,14 @@ class QueryBuilder {
 
 			// Create statement
 			// Auto-detect IN operator when value is an array and no operator is specified
-			$prepared_operator = $this->_determine_operator( $value, $arg_value );
+			$prepared_operator = $this->determine_operator( $value, $arg_value );
 
 			if ( is_array( $value ) && array_key_exists( 'key', $value )  ) {
 				if ( strtoupper($value['operator']) === 'BETWEEN' ) {
 					$prepared_value = $value['key'];
 				} else {
 					if ( is_array( $arg_value ) ) {
-						$prepared_value = $this->_prepare_array_value( $arg_value, $value );
+						$prepared_value = $this->prepare_array_value( $arg_value, $value );
 					} else if ( is_string( $arg_value ) && ! is_numeric( $arg_value ) ) {
 						$prepared_value = sprintf( "'%s'", $arg_value );
 					} else {
@@ -188,7 +188,7 @@ class QueryBuilder {
 			} else {
 				if ( is_array( $arg_value ) ) {
 					// Handle IN and NOT IN operators with proper escaping
-					$prepared_value = $this->_prepare_array_value( $arg_value, $value );
+					$prepared_value = $this->prepare_array_value( $arg_value, $value );
 				} else {
 					if ( is_null( $arg_value ) ) {
 						$prepared_value = 'null';
@@ -206,9 +206,8 @@ class QueryBuilder {
 				];
 
 			// Between?
-			if ( is_array( $value ) && isset( $value['operator'] ) ) {
-				$value['operator'] = strtoupper( $value['operator'] );
-				if ( strpos( $value['operator'], 'BETWEEN' ) !== false ) {
+			if ( is_array( $value ) ) {
+				if ( strpos( $prepared_operator, 'BETWEEN' ) !== false ) {
 					if ( array_key_exists( 'max', $value ) || array_key_exists( 'key_b', $value ) ) {
 						if ( array_key_exists( 'max', $value ) ) {
 							$arg_value = $value['max'];
@@ -223,7 +222,7 @@ class QueryBuilder {
 						$statement[] = array_key_exists( 'key_b', $value )
 							? $value['key_b']
 							: ( is_array( $arg_value )
-								? $this->_prepare_array_value( $arg_value, $value )
+								? $this->prepare_array_value( $arg_value, $value )
 								: $wpdb->prepare( ( ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
 							);
 					} else {
@@ -294,7 +293,7 @@ class QueryBuilder {
 					array_key_exists( 'key_b', $argument )
 						? $argument['key_b']
 						: ( is_array( $arg_value )
-						? $this->_prepare_array_value( $arg_value, null )
+						? $this->prepare_array_value( $arg_value, null )
 						: ( $arg_value === null
 							? 'null'
 							: $wpdb->prepare( ( ! array_key_exists( 'force_string', $argument ) || ! $argument['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
@@ -319,7 +318,7 @@ class QueryBuilder {
 						$statement[] = array_key_exists( 'key_c', $argument )
 							? $argument['key_c']
 							: ( is_array( $arg_value )
-								? $this->_prepare_array_value( $arg_value, null )
+								? $this->prepare_array_value( $arg_value, null )
 								: $wpdb->prepare( ( ! array_key_exists( 'force_string', $argument ) || ! $argument['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
 							);
 					} else {
@@ -459,7 +458,7 @@ class QueryBuilder {
 			if ( 'raw' === $key ) {
 				$statement = [$value];
 			} else {
-				$parsed = $this->parseValue( $key, $value );
+				$parsed = $this->parse_value( $key, $value );
 				$statement   = [ $preparedKey, '=', $parsed ];
 			}
 
@@ -485,43 +484,11 @@ class QueryBuilder {
 		foreach ( $args as $key => $value ) {
 			$preparedKey = sprintf( '`%s`', $key );
 
-			$this->builder['values'][ $preparedKey ] = $this->parseValue( $key, $value );
+			$this->builder['values'][ $preparedKey ] = $this->parse_value( $key, $value );
 
 		}
 
 		return $this;
-	}
-
-	/**
-	 * Parses value from parameterized statement
-	 *
-	 * @param $key
-	 * @param $value
-	 *
-	 * @return mixed|string
-	 */
-	protected function parseValue( $key, $value ) {
-
-		global $wpdb;
-
-		$arg_value         = is_array( $value ) && array_key_exists( 'value', $value ) ? $value['value'] : $value;
-		$sanitize_callback = is_array( $value ) && array_key_exists( 'sanitize_callback', $value ) ? $value['sanitize_callback'] : true;
-		if ( $sanitize_callback && $key !== 'raw' && ( ! is_array( $value ) || ! array_key_exists( 'raw', $value ) ) ) {
-			$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
-		}
-
-		if ( is_array( $value ) && array_key_exists( 'raw', $value ) ) {
-			return $value['raw'];
-		} else {
-			if ( is_array( $arg_value ) ) {
-				return ( '\'' . implode( ',', $arg_value ) . '\'' ); // Should not use _prepare_array_value() !
-			} else {
-				return ( $arg_value === null
-					? 'null'
-					: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
-				);
-			}
-		}
 	}
 
 	/**
@@ -1031,40 +998,6 @@ class QueryBuilder {
 	}
 
 	/**
-	 * Sanitize value.
-	 *
-	 * @param string|bool $callback Sanitize callback.
-	 * @param mixed $value
-	 *
-	 * @return mixed
-	 * @since 1.0.0
-	 *
-	 */
-	private function sanitize_value( $callback, $value ) {
-		if ( $callback === true ) {
-			$callback = ( is_numeric( $value ) && strpos( $value, '.' ) !== false )
-				? 'floatval'
-				: ( is_numeric( $value )
-					? 'intval'
-					: ( is_string( $value )
-						? 'sanitize_text_field'
-						: null
-					)
-				);
-		}
-		if ( $callback && strpos( $callback, '_builder' ) !== false ) {
-			$callback = [ &$this, $callback ];
-		}
-		if ( is_array( $value ) ) {
-			for ( $i = count( $value ) - 1; $i >= 0; -- $i ) {
-				$value[ $i ] = $this->sanitize_value( true, $value[ $i ] );
-			}
-		}
-
-		return $callback && is_callable( $callback ) ? call_user_func_array( $callback, [ $value ] ) : $value;
-	}
-
-	/**
 	 * Build statement
 	 *
 	 * @param array $statement
@@ -1142,7 +1075,7 @@ class QueryBuilder {
 	 * @return string The SQL operator
 	 * @since 1.3.0
 	 */
-	private function _determine_operator( $value, $arg_value ) {
+	protected function determine_operator( $value, $arg_value ) {
 		// If operator is explicitly set, use it
 		if ( is_array( $value ) && isset( $value['operator'] ) ) {
 			return strtoupper( $value['operator'] );
@@ -1168,7 +1101,7 @@ class QueryBuilder {
 	 * @return string Properly formatted array for SQL
 	 * @since 1.3.0
 	 */
-	private function _prepare_array_value( $arg_value, $value ) {
+	protected function prepare_array_value( $arg_value, $value ) {
 		global $wpdb;
 
 		$escaped_values = array();
@@ -1185,5 +1118,86 @@ class QueryBuilder {
 		}
 
 		return '(' . implode( ',', $escaped_values ) . ')';
+	}
+
+	/**
+	 * Parses value from parameterized statement
+	 *
+	 * @param $key
+	 * @param $value
+	 *
+	 * @return mixed|string
+	 */
+	protected function parse_value( $key, $value ) {
+
+		global $wpdb;
+
+		$arg_value         = is_array( $value ) && array_key_exists( 'value', $value ) ? $value['value'] : $value;
+		$sanitize_callback = is_array( $value ) && array_key_exists( 'sanitize_callback', $value ) ? $value['sanitize_callback'] : true;
+		if ( $sanitize_callback && $key !== 'raw' && ( ! is_array( $value ) || ! array_key_exists( 'raw', $value ) ) ) {
+			$arg_value = $this->sanitize_value( $sanitize_callback, $arg_value );
+		}
+
+		if ( is_array( $value ) && array_key_exists( 'raw', $value ) ) {
+			return $value['raw'];
+		} else {
+			if ( is_array( $arg_value ) ) {
+				return ( '\'' . implode( ',', $arg_value ) . '\'' ); // Should not use prepare_array_value() !
+			} else {
+				return ( $arg_value === null
+					? 'null'
+					: $wpdb->prepare( ( ! is_array( $value ) || ! array_key_exists( 'force_string', $value ) || ! $value['force_string'] ) && is_numeric( $arg_value ) ? '%d' : '%s', $arg_value )
+				);
+			}
+		}
+	}
+
+	/**
+	 * Sanitize value.
+	 *
+	 * @param string|bool $callback Sanitize callback.
+	 * @param mixed $value
+	 *
+	 * @return mixed
+	 * @since 1.0.0
+	 *
+	 */
+	private function sanitize_value( $callback, $value ) {
+		if ( $callback === true ) {
+			$callback = ( is_numeric( $value ) && strpos( $value, '.' ) !== false )
+				? 'floatval'
+				: ( is_numeric( $value )
+					? 'intval'
+					: ( is_string( $value )
+						? 'sanitize_text_field'
+						: null
+					)
+				);
+		}
+		if ( $callback && strpos( $callback, '_builder' ) !== false ) {
+			$callback = [ &$this, $callback ];
+		}
+		if ( is_array( $value ) ) {
+			for ( $i = count( $value ) - 1; $i >= 0; -- $i ) {
+				$value[ $i ] = $this->sanitize_value( true, $value[ $i ] );
+			}
+		}
+
+		return $callback && is_callable( $callback ) ? call_user_func_array( $callback, [ $value ] ) : $value;
+	}
+
+	/**
+	 * Parses value from parameterized statement
+	 *
+	 * @param $key
+	 * @param $value
+	 *
+	 * @since 1.0.0
+	 * @depecated 1.3.0
+	 *
+	 * @return mixed|string
+	 */
+	protected function parseValue( $key, $value ) {
+		return $this->parse_value( $key, $value );
 	}
 }
